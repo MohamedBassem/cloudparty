@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/MohamedBassem/CloudParty/app/models"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/revel/revel"
 )
@@ -47,12 +48,16 @@ var HeaderFilter = func(c *revel.Controller, fc []revel.Filter) {
 
 func InitDB() {
 	databaseHost := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True&loc=Local", revel.Config.StringDefault("db.user", ""), revel.Config.StringDefault("db.password", ""), revel.Config.StringDefault("db.host", ""), revel.Config.StringDefault("db.name", ""))
-	DB, err := gorm.Open("mysql", databaseHost)
+	_DB, err := gorm.Open("mysql", databaseHost)
+	DB = &_DB
 	if err != nil {
 		revel.INFO.Println("DB Error", err)
 	}
 	revel.INFO.Println("DB Connected", err)
+	DB.SetLogger(gorm.Logger{revel.TRACE})
+	DB.LogMode(true)
 
-	DB.AutoMigrate(&models.Song{})
 	DB.AutoMigrate(&models.Playlist{})
+	DB.AutoMigrate(&models.Song{})
+	DB.Table("playlist_songs").CreateTable(&models.PlaylistSongs{})
 }
