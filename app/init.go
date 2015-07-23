@@ -1,6 +1,14 @@
 package app
 
-import "github.com/revel/revel"
+import (
+	"fmt"
+
+	"github.com/MohamedBassem/CloudParty/app/models"
+	"github.com/jinzhu/gorm"
+	"github.com/revel/revel"
+)
+
+var DB *gorm.DB
 
 func init() {
 	// Filters is the default set of global filters.
@@ -21,7 +29,7 @@ func init() {
 
 	// register startup functions with OnAppStart
 	// ( order dependent )
-	// revel.OnAppStart(InitDB)
+	revel.OnAppStart(InitDB)
 	// revel.OnAppStart(FillCache)
 }
 
@@ -35,4 +43,16 @@ var HeaderFilter = func(c *revel.Controller, fc []revel.Filter) {
 	c.Response.Out.Header().Add("X-Content-Type-Options", "nosniff")
 
 	fc[0](c, fc[1:]) // Execute the next filter stage.
+}
+
+func InitDB() {
+	databaseHost := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True&loc=Local", revel.Config.StringDefault("db.user", ""), revel.Config.StringDefault("db.password", ""), revel.Config.StringDefault("db.host", ""), revel.Config.StringDefault("db.name", ""))
+	DB, err := gorm.Open("mysql", databaseHost)
+	if err != nil {
+		revel.INFO.Println("DB Error", err)
+	}
+	revel.INFO.Println("DB Connected", err)
+
+	DB.AutoMigrate(&models.Song{})
+	DB.AutoMigrate(&models.Playlist{})
 }
