@@ -6,6 +6,10 @@ module:testrunner
 
 GET     /                                       App.Index
 
+# Playlists
+GET     /pl/:playlistId                         Playlist.Get
+POST    /pl                                     Playlist.New
+
 # Ignore favicon requests
 GET     /favicon.ico                            404
 
