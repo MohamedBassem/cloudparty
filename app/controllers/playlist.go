@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MohamedBassem/CloudParty/app"
+
 	"github.com/MohamedBassem/CloudParty/app/models"
 	"github.com/MohamedBassem/CloudParty/app/utils"
 	"github.com/revel/revel"
@@ -16,11 +16,11 @@ type PlaylistController struct {
 
 func (c PlaylistController) Get(playlistId string) revel.Result {
 	var playlist models.Playlist
-	if app.DB.Where(&models.Playlist{Name: playlistId}).First(&playlist).RecordNotFound() {
+	if DB.Where(&models.Playlist{Name: playlistId}).First(&playlist).RecordNotFound() {
 		return c.NotFound("Playlist not found.")
 	}
 	var songs []models.Song
-	app.DB.Model(&playlist).Related(&songs, "Songs")
+	DB.Model(&playlist).Related(&songs, "Songs")
 
 	return c.Render(playlist, songs)
 }
