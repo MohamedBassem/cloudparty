@@ -10,6 +10,7 @@ GET     /                                       App.Index
 GET     /pl/:playlistId                         PlaylistController.Get
 POST    /pl                                     PlaylistController.NewPlaylist
 POST    /pl/:playlistId/song                    PlaylistController.NewSong
+WS      /pl/:playlistId/subscribe               PlaylistController.Subscribe
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
