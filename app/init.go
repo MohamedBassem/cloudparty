@@ -54,10 +54,8 @@ func InitDB() {
 		revel.INFO.Println("DB Error", err)
 	}
 	revel.INFO.Println("DB Connected", err)
-	DB.SetLogger(gorm.Logger{revel.TRACE})
 	DB.LogMode(true)
 
 	DB.AutoMigrate(&models.Playlist{})
 	DB.AutoMigrate(&models.Song{})
-	DB.Table("playlist_songs").CreateTable(&models.PlaylistSongs{})
 }

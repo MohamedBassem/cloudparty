@@ -7,6 +7,7 @@ type Playlist struct {
 	Name      string
 	CreatorIP string
 	CreatedAt time.Time
+	Songs     []Song `gorm:"many2many:playlist_song;"`
 }
 
 func NewPlaylist(name, ip string, createdAt time.Time) *Playlist {
