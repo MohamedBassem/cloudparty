@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 
-	"github.com/MohamedBassem/CloudParty/app/models"
+	"github.com/MohamedBassem/cloudparty/app/models"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/revel/revel"

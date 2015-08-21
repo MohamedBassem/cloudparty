@@ -6,8 +6,8 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"github.com/MohamedBassem/CloudParty/app/models"
-	"github.com/MohamedBassem/CloudParty/app/utils"
+	"github.com/MohamedBassem/cloudparty/app/models"
+	"github.com/MohamedBassem/cloudparty/app/utils"
 	"github.com/revel/revel"
 )
 
