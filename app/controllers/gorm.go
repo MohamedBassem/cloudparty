@@ -24,7 +24,7 @@ func InitDB() {
 		revel.INFO.Println("DB Error", err)
 	}
 	revel.INFO.Println("DB Connected", err)
-	DB.LogMode(true)
+	//DB.LogMode(true)
 
 	DB.AutoMigrate(&models.Playlist{})
 	DB.AutoMigrate(&models.Song{})

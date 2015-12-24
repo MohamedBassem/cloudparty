@@ -8,8 +8,6 @@ GET     /                                       App.Index
 
 # Playlists
 GET     /pl/:playlistId                         PlaylistController.Get
-POST    /pl                                     PlaylistController.NewPlaylist
-POST    /pl/:playlistId/song                    PlaylistController.NewSong
 WS      /pl/:playlistId/subscribe               PlaylistController.Subscribe
 
 # Ignore favicon requests

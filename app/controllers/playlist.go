@@ -1,13 +1,9 @@
 package controllers
 
 import (
-	"strings"
-	"time"
-
 	"golang.org/x/net/websocket"
 
 	"github.com/MohamedBassem/cloudparty/app/models"
-	"github.com/MohamedBassem/cloudparty/app/utils"
 	"github.com/revel/revel"
 )
 
@@ -20,35 +16,51 @@ func (c PlaylistController) Get(playlistId string) revel.Result {
 	if DB.Where(&models.Playlist{Name: playlistId}).First(&playlist).RecordNotFound() {
 		return c.NotFound("Playlist not found.")
 	}
-	var songs []models.Song
-	DB.Model(&playlist).Related(&songs, "Songs")
-
-	return c.Render(playlist, songs)
+	return c.Render(playlist)
 }
 
-func (c PlaylistController) NewPlaylist() revel.Result {
-	newId := utils.RandomString(20)
-	playlist := models.NewPlaylist(newId, strings.Split(c.Request.RemoteAddr, ":")[0], time.Now())
-	DB.Create(&playlist)
-	return c.RenderJson(struct{ PlaylistID string }{newId})
-}
-
-func (c PlaylistController) NewSong(playlistId string) revel.Result {
-	var playlist models.Playlist
-	if DB.Where(&models.Playlist{Name: playlistId}).First(&playlist).RecordNotFound() {
-		return c.NotFound("Playlist not found.")
+func sendSongs(c chan string, songs []models.Song) {
+	for _, song := range songs {
+		c <- models.AddCommand{SongUrl: song.Url}.String()
 	}
+}
 
-	songUrl := c.Params.Form.Get("url")
+func listenSocket(ws *websocket.Conn, receivedChan chan string, doneChan chan struct{}) {
+	var msg string
+	for {
+		err := websocket.Message.Receive(ws, &msg)
+		if err != nil || msg == "" {
+			doneChan <- struct{}{}
+			revel.INFO.Printf("%s SOCKET CLOSED", ws.Request().RemoteAddr)
+			return
+		}
+		revel.INFO.Printf("GOT '%s' FROM %s", msg, ws.Request().RemoteAddr)
+		receivedChan <- msg
+
+		// Exit if we are done
+		select {
+		case <-doneChan:
+			return
+		default:
+		}
+	}
+}
+
+func handleAddCommand(playlist models.Playlist, c models.AddCommand) {
 	var song models.Song
-	if DB.Where(&models.Song{Url: songUrl}).First(&song).RecordNotFound() {
-		song = *models.NewSong("", songUrl, "")
+	if DB.Where(&models.Song{Url: c.SongUrl}).First(&song).RecordNotFound() {
+		song = *models.NewSong("", c.SongUrl, "")
 	}
 	DB.Model(&playlist).Association("Songs").Append(&song)
-	MainChan <- Message{Playlist: playlistId, Message: "ADD " + songUrl}
+	PublishPlaylist(playlist.Name, c)
+}
 
-	c.Response.Status = 201
-	return c.RenderText("")
+func parseAndPublish(playlist models.Playlist, msg string) {
+	command := models.ParseCommand(msg)
+	switch c := command.(type) {
+	case models.AddCommand:
+		handleAddCommand(playlist, c)
+	}
 }
 
 func (c PlaylistController) Subscribe(playlistId string, ws *websocket.Conn) revel.Result {
@@ -57,19 +69,37 @@ func (c PlaylistController) Subscribe(playlistId string, ws *websocket.Conn) rev
 		return c.NotFound("Playlist not found.")
 	}
 
-	myChan := make(chan string, 1000)
-	SubscribePlaylist(playlistId, myChan)
-	defer UnsubscribePlaylist(playlistId, myChan)
+	var songs []models.Song
+	DB.Model(&playlist).Related(&songs, "Songs")
 
+	sendChan := make(chan string, 1000)
+	receivedChan := make(chan string)
+	doneChan := make(chan struct{})
+
+	SubscribePlaylist(playlistId, sendChan)
+	go listenSocket(ws, receivedChan, doneChan)
+
+	// On exit unsubscribe from all chans
+	defer UnsubscribePlaylist(playlistId, sendChan)
+
+	go sendSongs(sendChan, songs)
+
+MAINLOOP:
 	for {
-		msg := <-myChan
-		err := websocket.Message.Send(ws, msg)
-		if err != nil {
-			revel.INFO.Println(msg)
-			revel.INFO.Println(err)
-			return nil
+		select {
+		case msg := <-sendChan:
+			err := websocket.Message.Send(ws, msg)
+			if err != nil {
+				revel.INFO.Println(msg)
+				revel.INFO.Println(err)
+				return nil
+			}
+		case msg := <-receivedChan:
+			parseAndPublish(playlist, msg)
+		case <-doneChan:
+			break MAINLOOP
 		}
 	}
 
-	return c.RenderText("")
+	return nil
 }

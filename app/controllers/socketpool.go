@@ -3,6 +3,7 @@ package controllers
 import (
 	"sync"
 
+	"github.com/MohamedBassem/cloudparty/app/models"
 	"github.com/revel/revel"
 )
 
@@ -68,4 +69,8 @@ func UnsubscribePlaylist(playlist string, channel chan string) {
 			})
 		}
 	}
+}
+
+func PublishPlaylist(playlistId string, command models.Command) {
+	MainChan <- Message{Playlist: playlistId, Message: command.String()}
 }
